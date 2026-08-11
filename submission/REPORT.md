@@ -4,7 +4,7 @@
 
 - Tên nhóm: Nhóm C2 — VinAI K3 Cohort
 - Repository URL: `https://github.com/gnuthnaht14/Day13-K3-Observability-Nhom-C2`
-- Commit SHA cuối: `a472d37`
+- Commit SHA cuối: `b624360`
 - Thành viên và vai trò:
   - Mai Hồng Sơn (2A202601921): CP1 Middleware, gán Correlation ID, và bổ sung exception handler (phần mở rộng).
   - Lê Thị Linh (2A202601441): CP2 Thiết lập SLO, viết Alerts rules và Alert Runbook xử lý sự cố.
