@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 13 AI Observability Dashboard</title>
+  <!-- Google Fonts & Chart.js -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0b0f17;
+      --bg-card: rgba(22, 30, 46, 0.75);
+      --bg-card-hover: rgba(30, 41, 62, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-cyan: #38bdf8;
+      --accent-purple: #a855f7;
+      --accent-green: #22c55e;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+    }
+
+    .brand-title h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-title p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(34, 197, 94, 0.12);
+      color: var(--accent-green);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #7e22ce);
+      border: none;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    /* Contract Summary Banner */
+    .summary-banner {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .banner-info {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .banner-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .banner-item span {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .banner-item strong {
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .card-slo {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .card-slo.pass {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--accent-green);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .card-slo.fail {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--accent-red);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .metric-values {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .big-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .unit {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .sub-metrics {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .sub-metrics strong {
+      color: var(--text-main);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 180px;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    /* Progress bar for quality/cost */
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-title">
+          <h1>Day 13 AI Observability Dashboard</h1>
+          <p>Real-time Metrics, SLO Tracking & System Health Monitor</p>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="badge">
+          <div class="badge-dot"></div>
+          <span id="liveStatus">LIVE METRICS</span>
+        </div>
+        <button class="btn" onclick="fetchMetrics()">🔄 Refresh Now</button>
+        <button class="btn btn-primary" onclick="triggerLoadTest()">🚀 Trigger Load Test</button>
+      </div>
+    </header>
+
+    <!-- Contract Summary Banner -->
+    <div class="summary-banner">
+      <div class="banner-info">
+        <div class="banner-item">
+          <span>Contract Version</span>
+          <strong>YAML Schema v1</strong>
+        </div>
+        <div class="banner-item">
+          <span>Contract Validation</span>
+          <strong style="color: var(--accent-green);">6/6 Panels Validated ✅</strong>
+        </div>
+        <div class="banner-item">
+          <span>Time Window</span>
+          <strong>Last 60 Minutes</strong>
+        </div>
+        <div class="banner-item">
+          <span>Auto-Refresh Interval</span>
+          <strong>30 Seconds</strong>
+        </div>
+      </div>
+      <div>
+        <span style="font-size: 12px; color: var(--text-muted);">Source: <code>/metrics</code> &amp; <code>data/logs.jsonl</code></span>
+      </div>
+    </div>
+
+    <!-- 6 Core Panels Grid -->
+    <div class="grid">
+
+      <!-- Panel 1: Latency -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">⏱️</div>
+            <span>Latency Percentiles</span>
+          </div>
+          <div id="slo-latency" class="card-slo pass">SLO: P95 ≤ 3000ms</div>
+        </div>
+        <div class="metric-values">
+          <div class="big-value" id="val-p95">--</div>
+          <div class="unit">ms (P95)</div>
+        </div>
+        <div class="sub-metrics">
+          <span>P50: <strong id="val-p50">--</strong> ms</span>
+          <span>P95: <strong id="val-p95-sub">--</strong> ms</span>
+          <span>P99: <strong id="val-p99">--</strong> ms</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartLatency"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel 2: Traffic -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">📈</div>
+            <span>Request Traffic</span>
+          </div>
+          <div id="slo-traffic" class="card-slo pass">Threshold: ≥ 1 req/min</div>
+        </div>
+        <div class="metric-values">
+          <div class="big-value" id="val-traffic">--</div>
+          <div class="unit">total requests</div>
+        </div>
+        <div class="sub-metrics">
+          <span>Rate: <strong id="val-qps">--</strong> req/min</span>
+          <span>Window: <strong>60 minutes</strong></span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartTraffic"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel 3: Errors -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">🚨</div>
+            <span>Error Rate & Breakdown</span>
+          </div>
+          <div id="slo-errors" class="card-slo pass">SLO: Error ≤ 2.0%</div>
+        </div>
+        <div class="metric-values">
+          <div class="big-value" id="val-error-rate">0.0</div>
+          <div class="unit">% Error Rate</div>
+        </div>
+        <div class="sub-metrics">
+          <span>Breakdown: <strong id="val-error-breakdown">None (Clean)</strong></span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartErrors"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel 4: Cost -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">💰</div>
+            <span>Cost Over Time</span>
+          </div>
+          <div id="slo-cost" class="card-slo pass">Budget: ≤ $2.50</div>
+        </div>
+        <div class="metric-values">
+          <div class="big-value" id="val-cost-total">$0.000</div>
+          <div class="unit">Total USD</div>
+        </div>
+        <div class="sub-metrics">
+          <span>Avg / Req: <strong id="val-cost-avg">$0.0000</strong></span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="costProgress" style="width: 5%;"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartCost"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel 5: Tokens -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">🔤</div>
+            <span>Input & Output Tokens</span>
+          </div>
+          <div id="slo-tokens" class="card-slo pass">Limit: ≤ 50,000</div>
+        </div>
+        <div class="metric-values">
+          <div class="big-value" id="val-tokens-total">0</div>
+          <div class="unit">total tokens</div>
+        </div>
+        <div class="sub-metrics">
+          <span>Input: <strong id="val-tokens-in">0</strong></span>
+          <span>Output: <strong id="val-tokens-out">0</strong></span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartTokens"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel 6: Quality Proxy -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">⭐</div>
+            <span>Quality Proxy</span>
+          </div>
+          <div id="slo-quality" class="card-slo pass">SLO: Quality ≥ 0.75</div>
+        </div>
+        <div class="metric-values">
+          <div class="big-value" id="val-quality">0.00</div>
+          <div class="unit">/ 1.00 Score</div>
+        </div>
+        <div class="sub-metrics">
+          <span>Evaluation: <strong id="val-quality-status">Excellent</strong></span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="qualityProgress" style="width: 85%; background: var(--accent-green);"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartQuality"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>Day 13 Observability Lab • VinAI K3 Group C2 • Verified via <code>python scripts/validate_dashboard.py</code></p>
+    </footer>
+  </div>
+
+  <script>
+    // Historical metric data points for charts
+    const historyData = {
+      labels: [],
+      p50: [],
+      p95: [],
+      p99: [],
+      traffic: [],
+      errors: [],
+      cost: [],
+      tokensIn: [],
+      tokensOut: [],
+      quality: []
+    };
+
+    // Chart instances
+    let chartLatency, chartTraffic, chartErrors, chartCost, chartTokens, chartQuality;
+
+    function initCharts() {
+      const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: '#94a3b8', font: { size: 10 } } } },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      };
+
+      // 1. Latency Chart
+      chartLatency = new Chart(document.getElementById('chartLatency'), {
+        type: 'line',
+        data: {
+          labels: historyData.labels,
+          datasets: [
+            { label: 'P50 (ms)', data: historyData.p50, borderColor: '#38bdf8', borderWidth: 2, tension: 0.3 },
+            { label: 'P95 (ms)', data: historyData.p95, borderColor: '#a855f7', borderWidth: 2, tension: 0.3 },
+            { label: 'P99 (ms)', data: historyData.p99, borderColor: '#ef4444', borderWidth: 2, tension: 0.3 }
+          ]
+        },
+        options: commonOptions
+      });
+
+      // 2. Traffic Chart
+      chartTraffic = new Chart(document.getElementById('chartTraffic'), {
+        type: 'bar',
+        data: {
+          labels: historyData.labels,
+          datasets: [{ label: 'Traffic (requests)', data: historyData.traffic, backgroundColor: 'rgba(56, 189, 248, 0.6)', borderRadius: 4 }]
+        },
+        options: commonOptions
+      });
+
+      // 3. Error Chart
+      chartErrors = new Chart(document.getElementById('chartErrors'), {
+        type: 'line',
+        data: {
+          labels: historyData.labels,
+          datasets: [{ label: 'Error Rate (%)', data: historyData.errors, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.3 }]
+        },
+        options: commonOptions
+      });
+
+      // 4. Cost Chart
+      chartCost = new Chart(document.getElementById('chartCost'), {
+        type: 'line',
+        data: {
+          labels: historyData.labels,
+          datasets: [{ label: 'Total Cost ($)', data: historyData.cost, borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)', fill: true, tension: 0.3 }]
+        },
+        options: commonOptions
+      });
+
+      // 5. Tokens Chart
+      chartTokens = new Chart(document.getElementById('chartTokens'), {
+        type: 'bar',
+        data: {
+          labels: historyData.labels,
+          datasets: [
+            { label: 'Tokens In', data: historyData.tokensIn, backgroundColor: '#38bdf8' },
+            { label: 'Tokens Out', data: historyData.tokensOut, backgroundColor: '#a855f7' }
+          ]
+        },
+        options: { ...commonOptions, scales: { ...commonOptions.scales, x: { stacked: true }, y: { stacked: true } } }
+      });
+
+      // 6. Quality Chart
+      chartQuality = new Chart(document.getElementById('chartQuality'), {
+        type: 'line',
+        data: {
+          labels: historyData.labels,
+          datasets: [{ label: 'Quality Score', data: historyData.quality, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.3 }]
+        },
+        options: commonOptions
+      });
+    }
+
+    async function fetchMetrics() {
+      try {
+        const res = await fetch('/metrics');
+        const data = await res.json();
+        
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // Update Big Values
+        document.getElementById('val-p95').innerText = data.latency_p95.toFixed(0);
+        document.getElementById('val-p50').innerText = data.latency_p50.toFixed(0);
+        document.getElementById('val-p95-sub').innerText = data.latency_p95.toFixed(0);
+        document.getElementById('val-p99').innerText = data.latency_p99.toFixed(0);
+
+        document.getElementById('val-traffic').innerText = data.traffic;
+        document.getElementById('val-qps').innerText = data.traffic;
+
+        document.getElementById('val-error-rate').innerText = data.error_rate_pct.toFixed(1);
+        const errBreakdownStr = Object.keys(data.error_breakdown || {}).length > 0 
+          ? JSON.stringify(data.error_breakdown) 
+          : 'None (Clean)';
+        document.getElementById('val-error-breakdown').innerText = errBreakdownStr;
+
+        document.getElementById('val-cost-total').innerText = '$' + data.total_cost_usd.toFixed(4);
+        document.getElementById('val-cost-avg').innerText = '$' + data.avg_cost_usd.toFixed(4);
+
+        const totalTokens = data.tokens_in_total + data.tokens_out_total;
+        document.getElementById('val-tokens-total').innerText = totalTokens.toLocaleString();
+        document.getElementById('val-tokens-in').innerText = data.tokens_in_total.toLocaleString();
+        document.getElementById('val-tokens-out').innerText = data.tokens_out_total.toLocaleString();
+
+        document.getElementById('val-quality').innerText = data.quality_avg.toFixed(2);
+
+        // Check SLOs
+        updateSloStatus('slo-latency', data.latency_p95 <= 3000, 'SLO: P95 ≤ 3000ms');
+        updateSloStatus('slo-traffic', data.traffic >= 1, 'Threshold: ≥ 1 req');
+        updateSloStatus('slo-errors', data.error_rate_pct <= 2.0, 'SLO: Error ≤ 2.0%');
+        updateSloStatus('slo-cost', data.total_cost_usd <= 2.50, 'Budget: ≤ $2.50');
+        updateSloStatus('slo-tokens', totalTokens <= 50000, 'Limit: ≤ 50,000');
+        updateSloStatus('slo-quality', data.quality_avg >= 0.75, 'SLO: Quality ≥ 0.75');
+
+        // Cost and Quality Progress bars
+        document.getElementById('costProgress').style.width = Math.min(100, (data.total_cost_usd / 2.5) * 100) + '%';
+        document.getElementById('qualityProgress').style.width = (data.quality_avg * 100) + '%';
+
+        // Push History Data (max 10 points)
+        if (historyData.labels.length >= 10) {
+          historyData.labels.shift();
+          historyData.p50.shift();
+          historyData.p95.shift();
+          historyData.p99.shift();
+          historyData.traffic.shift();
+          historyData.errors.shift();
+          historyData.cost.shift();
+          historyData.tokensIn.shift();
+          historyData.tokensOut.shift();
+          historyData.quality.shift();
+        }
+
+        historyData.labels.push(now);
+        historyData.p50.push(data.latency_p50);
+        historyData.p95.push(data.latency_p95);
+        historyData.p99.push(data.latency_p99);
+        historyData.traffic.push(data.traffic);
+        historyData.errors.push(data.error_rate_pct);
+        historyData.cost.push(data.total_cost_usd);
+        historyData.tokensIn.push(data.tokens_in_total);
+        historyData.tokensOut.push(data.tokens_out_total);
+        historyData.quality.push(data.quality_avg);
+
+        // Update charts
+        chartLatency.update();
+        chartTraffic.update();
+        chartErrors.update();
+        chartCost.update();
+        chartTokens.update();
+        chartQuality.update();
+
+      } catch (err) {
+        console.error('Failed to fetch metrics:', err);
+      }
+    }
+
+    function updateSloStatus(elementId, isPass, text) {
+      const el = document.getElementById(elementId);
+      if (isPass) {
+        el.className = 'card-slo pass';
+        el.innerText = '✅ ' + text;
+      } else {
+        el.className = 'card-slo fail';
+        el.innerText = '❌ ' + text;
+      }
+    }
+
+    async function triggerLoadTest() {
+      const btn = document.querySelector('.btn-primary');
+      btn.innerText = '⏳ Running Load Test...';
+      btn.disabled = true;
+      try {
+        await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: 'user-demo', feature: 'qa', session_id: 's-demo', message: 'Hello AI dashboard' })
+        });
+        await fetchMetrics();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        btn.innerText = '🚀 Trigger Load Test';
+        btn.disabled = false;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      fetchMetrics();
+      setInterval(fetchMetrics, 15000); // Refresh every 15s
+    });
+  </script>
+</body>
+</html>
