@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from structlog.contextvars import bind_contextvars
 
 from .agent import LabAgent
@@ -15,7 +17,6 @@ from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
 from .tracing import tracing_enabled
 
-from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +44,12 @@ async def health() -> dict:
 @app.get("/metrics")
 async def metrics() -> dict:
     return snapshot()
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_ui() -> HTMLResponse:
+    dashboard_path = Path(__file__).parent / "dashboard.html"
+    return HTMLResponse(content=dashboard_path.read_text(encoding="utf-8"))
 
 
 @app.post("/chat", response_model=ChatResponse)
