@@ -24,16 +24,15 @@ class JsonlFileProcessor:
 
 
 def scrub_event(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
-    def _scrub(val: Any) -> Any:
+    for key, val in event_dict.items():
         if isinstance(val, str):
-            return scrub_text(val)
+            event_dict[key] = scrub_text(val)
         elif isinstance(val, dict):
-            return {k: _scrub(v) for k, v in val.items()}
-        elif isinstance(val, list):
-            return [_scrub(item) for item in val]
-        return val
+            event_dict[key] = {
+                k: scrub_text(v) if isinstance(v, str) else v for k, v in val.items()
+            }
+    return event_dict
 
-    return {k: _scrub(v) for k, v in event_dict.items()}
 
 
 def configure_logging() -> None:
