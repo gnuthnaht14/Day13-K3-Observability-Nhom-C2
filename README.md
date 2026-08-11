@@ -43,8 +43,21 @@ Trong lab này, Langfuse dùng cho trace và prompt versioning; nguồn chuẩn 
 4. Mở `data/logs.jsonl` và ghi lại những trường còn thiếu.
 5. Chạy `python scripts/validate_logs.py` để lấy baseline.
 6. Chạy `python scripts/validate_dashboard.py` để hiểu contract của dashboard.
+7. Chạy dashboard quan sát thực tế: `python -m streamlit run dashboard.py` (mở `http://localhost:8501`).
 
 Kết quả đúng ở bước 6 phải có dòng `HỢP LỆ: 6/6 panel`. Lệnh này chỉ kiểm tra contract; ảnh dashboard runtime vẫn phải nộp.
+
+## Chạy Dashboard
+
+```bash
+# Cài thư viện lần đầu
+pip install streamlit plotly
+
+# Chạy dashboard (cần API đang chạy và đã có data/logs.jsonl)
+python -m streamlit run dashboard.py
+```
+
+Dashboard mở tại `http://localhost:8501`, hiển thị 6 panel: Latency, Traffic, Error Rate, Cost, Tokens, Quality.
 
 ## Practice và challenge chính thức
 
