@@ -2,62 +2,56 @@
 
 ## 1. Thông tin nhóm
 
-- Tên nhóm: [CẦN BẠN BỔ SUNG]
-- Repository URL: [CẦN BẠN BỔ SUNG]
-- Commit SHA cuối: `e4decfd` tại thời điểm lập báo cáo; cập nhật lại sau khi commit báo cáo.
-- Thành viên và vai trò: [CẦN BẠN BỔ SUNG]
+- Tên nhóm:
+- Repository URL:
+- Commit SHA cuối:
+- Thành viên và vai trò:
 
 ## 2. Kết quả kỹ thuật
 
-- Điểm `validate_logs.py`: `100/100`.
-- Tổng số traces: [CẦN BẠN BỔ SUNG — repo không có danh sách trace Langfuse].
-- Số PII leak còn lại: `0` theo `submission/validation_logs.txt`.
-- Link/đường dẫn dashboard: chạy `python -m streamlit run dashboard.py`; link runtime/screenshot: [CẦN BẠN BỔ SUNG].
+- Điểm `validate_logs.py`: 30/100 (baseline)
+- Tổng số traces: 25 traces từ langfuse
+- Số PII leak còn lại: 0
+- Link/đường dẫn dashboard: chưa có
 
 ## 3. Logging và tracing
 
-- Evidence correlation ID: `submission/validation_logs.txt`; 10 unique correlation IDs.
-- Evidence PII redaction: `submission/validation_logs.txt`; Potential PII leaks detected: 0.
-- Evidence trace waterfall: [CẦN BẠN BỔ SUNG — chưa có file hoặc trace ID trong repo].
-- Giải thích một span đáng chú ý: [CẦN BẠN BỔ SUNG sau khi chọn một trace thực tế].
+- Evidence correlation ID:
+- Evidence PII redaction:
+- Evidence trace waterfall:
+- Giải thích một span đáng chú ý:
 
 ## 4. Prompt versioning
 
-- Prompt name: [CẦN BẠN BỔ SUNG từ Langfuse].
-- Version/label baseline: [CẦN BẠN BỔ SUNG từ Langfuse].
-- Version/label candidate: [CẦN BẠN BỔ SUNG từ Langfuse].
-- Trace ID của mỗi version: [CẦN BẠN BỔ SUNG].
-- Bằng chứng đổi label hoặc rollback: [CẦN BẠN BỔ SUNG — chưa có evidence trong repo].
+- Prompt name:
+- Version/label baseline:
+- Version/label candidate:
+- Trace ID của mỗi version:
+- Bằng chứng đổi label hoặc rollback:
 
 ## 5. Dashboard, SLO và alerts
 
-- Kết quả `validate_dashboard.py`: `HỢP LỆ: 6/6 panel có trong dashboard contract.`
-- Evidence dashboard: `dashboard.py`; screenshot/runtime URL: [CẦN BẠN BỔ SUNG].
+- Kết quả `validate_dashboard.py`:
+- Evidence dashboard:
 - SLO đã chọn và lý do:
-  - Latency P95 `<= 3000 ms`, target `99.5%`: giới hạn thời gian chờ của người dùng.
-  - Error rate `<= 2%`, target `99.0%`: giới hạn số request thất bại.
-  - Daily cost `<= 2.5 USD`: kiểm soát chi phí vận hành AI.
-  - Average quality score `>= 0.75`, target `95.0%`: duy trì chất lượng câu trả lời ở mức tối thiểu.
 - Alert rules và runbook:
-  - `ChatLatencyP95High` — `config/alert_rules.yaml`, `docs/alerts.md#alert-1`.
-  - `ChatErrorRateHigh` — `config/alert_rules.yaml`, `docs/alerts.md#alert-2`.
-  - `ChatQualityDegraded` — `config/alert_rules.yaml`, `docs/alerts.md#alert-3`.
 
 ## 6. Điều tra challenge
 
-- Challenge ID: `day13-k3-observability-v1`.
-- Triệu chứng từ metrics: [CẦN BẠN BỔ SUNG từ lần chạy challenge chính thức].
-- Trace ID liên quan: [CẦN BẠN BỔ SUNG].
-- Log line/correlation ID liên quan: [CẦN BẠN BỔ SUNG].
-- Root cause: [CẦN BẠN BỔ SUNG — không tự suy đoán khi chưa có evidence].
-- Fix action: [CẦN BẠN BỔ SUNG].
-- Preventive measure: [CẦN BẠN BỔ SUNG].
+- Challenge ID: `day13-k3-observability-v1` (Seed: 1303, Cohort: K3, Feature: `refund`)
+- Triệu chứng từ metrics: Độ trễ P95/P99 tăng đột biến từ baseline ~890ms lên **3383ms - 3458ms** (vi phạm SLO P95 <= 3000ms và vượt ngưỡng `latency_threshold_ms: 2000ms`). Tỷ lệ lỗi giữ ở 0.0%.
+- Trace ID liên quan: `req-0f5e02e1`, `req-9e0f33dd`, `req-a387bd6e`, `req-19d40269`, `req-8f6c1492`
+- Log line/correlation ID liên quan: `correlation_id: req-0f5e02e1` (Ghi nhận `request_received` lúc `04:14:26Z` và `response_sent` lúc `04:14:29Z` với `latency_ms: 3357`, `feature: refund`).
+- Root cause: Incident `rag_slow` được bật làm nghẽn bước RAG Document Retrieval (Vector Search) của tính năng `refund`, thêm khoảng delay 2.5s vào mọi truy vấn liên quan.
+- Fix action: 
+  1. Tắt công tắc sự cố: `python scripts/inject_incident.py --scenario rag_slow --disable`.
+  2. Trên Production: Tối ưu hóa chỉ mục HNSW trong Vector DB, bật Caching cho các truy vấn RAG phổ biến và đặt timeout 1.5s cho bước Retrieval.
+- Preventive measure: Cấu hình Alert `high_latency_p95` (`latency_p95 > 3000ms for 5m`), cài đặt Circuit Breaker tự động ngắt RAG khi vượt quá 1500ms, và thiết lập bảng Dashboard giám sát P95 Latency phân tách theo từng `feature`.
 
 ## 7. Đóng góp cá nhân
 
 Với mỗi thành viên, ghi rõ nhiệm vụ và link commit/PR tương ứng.
 
-| Thành viên        | Phần việc                                                      | Commit/PR         | Điều đã học                                                                          |
-| ----------------- | -------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------ |
-| [CẦN BẠN BỔ SUNG] | Thiết lập SLO, viết symptom-based alert rules và alert runbook | `6eeb3f2`         | Chuyển SLI/SLO thành threshold, condition, owner và quy trình Metrics → Trace → Logs |
-| [CẦN BẠN BỔ SUNG] | [CẦN BẠN BỔ SUNG]                                              | [CẦN BẠN BỔ SUNG] | [CẦN BẠN BỔ SUNG]                                                                    |
+| Thành viên | Phần việc | Commit/PR | Điều đã học |
+|---|---|---|---|
+| | | | |

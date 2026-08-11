@@ -1,19 +1,19 @@
 alerts:
-  - name: ChatLatencyP95High
+  - name: high_latency_p95
     severity: warning
-    condition: response_sent latency_p95_ms > 3000 for 10m
+    condition: "latency_p95 > 3000ms for 5 minutes"
     type: symptom-based
-    owner: dashboard-slo
+    owner: on-call-engineer
     runbook: docs/alerts.md#alert-1
-  - name: ChatErrorRateHigh
+  - name: elevated_error_rate
     severity: critical
-    condition: request_failed / request_received error_rate_pct > 2 for 5m
+    condition: "error_rate_pct > 5 for 3 minutes"
     type: symptom-based
-    owner: api-oncall
+    owner: on-call-engineer
     runbook: docs/alerts.md#alert-2
-  - name: ChatQualityDegraded
+  - name: cost_budget_exceeded
     severity: warning
-    condition: response_sent quality_score_avg < 0.75 for 15m
+    condition: "daily_cost_usd > 2.5"
     type: symptom-based
-    owner: ai-quality
+    owner: team-lead
     runbook: docs/alerts.md#alert-3

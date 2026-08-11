@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from structlog.contextvars import bind_contextvars
 
 from .agent import LabAgent
@@ -15,21 +17,23 @@ from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
 from .tracing import tracing_enabled
 
-configure_logging()
-log = get_logger()
-app = FastAPI(title="Day 13 Observability Lab")
-app.add_middleware(CorrelationIdMiddleware)
-agent = LabAgent()
 
-
-@app.on_event("startup")
-async def startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     log.info(
         "app_started",
         service=os.getenv("APP_NAME", "day13-observability-lab"),
         env=os.getenv("APP_ENV", "dev"),
         payload={"tracing_enabled": tracing_enabled()},
     )
+    yield
+
+
+configure_logging()
+log = get_logger()
+app = FastAPI(title="Day 13 Observability Lab", lifespan=lifespan)
+app.add_middleware(CorrelationIdMiddleware)
+agent = LabAgent()
 
 
 @app.get("/health")
@@ -42,16 +46,22 @@ async def metrics() -> dict:
     return snapshot()
 
 
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_ui() -> HTMLResponse:
+    dashboard_path = Path(__file__).parent / "dashboard.html"
+    return HTMLResponse(content=dashboard_path.read_text(encoding="utf-8"))
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
     bind_contextvars(
         user_id_hash=hash_user_id(body.user_id),
         session_id=body.session_id,
         feature=body.feature,
-        model=os.getenv("MOCK_MODEL", "mock-llm-v1"),
+        model=agent.model,
         env=os.getenv("APP_ENV", "dev"),
     )
-
+    
     log.info(
         "request_received",
         service="api",
